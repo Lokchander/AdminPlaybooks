@@ -1,0 +1,35 @@
+#Playbook for Providing TempSudo Access for the given IDs.
+#Lok
+---
+ - hosts: all
+   become: yes
+   gather_facts: yes
+
+# Get the ID and expiryDate
+   vars_prompt: 
+     - name: userid
+       prompt: Enter the Userid
+       private: no
+    
+     - name: edate
+       prompt: Enter the expiry date [ format - mmddyyyy ]
+       private: no
+
+
+   tasks:
+
+     - name: Asserting the syntax check of the given values
+       assert:
+         that:
+           
+     - name: Display the get values
+       debug:
+         msg: "{{ userid }} {{ edate }}"
+
+# Assert the ID exists in AD / Local
+# Create the tempgroup - tempsudo
+# Add the users onto that group
+# Schedule the crontab under the user to remove the access on expiry date and mail the status
+
+ 
+...   
