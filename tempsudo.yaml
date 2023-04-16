@@ -1,4 +1,4 @@
-#Playbook for Providing TempSudo Access for the given IDs.
+#Playbook for Providing TempSudo Access for the given ID.
 #Lok
 ---
  - hosts: all
@@ -6,30 +6,91 @@
    gather_facts: yes
 
 # Get the ID and expiryDate
+
    vars_prompt: 
      - name: userid
        prompt: Enter the Userid
        private: no
     
      - name: edate
-       prompt: Enter the expiry date [ format - mmddyyyy ]
+       prompt: Enter the expiry date [ format - mm-dd-yyyy ]
        private: no
 
+#Validating the input format, edate has been enforced to check for the format [mm-dd-yyyy],
+
+   pre_tasks:
+
+     - name: Checking the format of given date
+       fail:
+         msg: " Given date Inputs are not in correct format "
+       when:
+         - userid != ""
+         - edate != ""
+         - not edate is regex('^[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]$')
+       run_once: true
+     
+     - name: Setting facts for cron module
+       set_fact:
+         chour: '0'
+         cmin: '0'
+         cmon: "{{ edate.split('-').0 }}"
+         cday: "{{ edate.split('-').1 }}"
+         cweekday: '*' 
 
    tasks:
 
-     - name: Asserting the syntax check of the given values
-       assert:
-         that:
-           
-     - name: Display the get values
-       debug:
-         msg: "{{ userid }} {{ edate }}"
-
 # Assert the ID exists in AD / Local
-# Create the tempgroup - tempsudo
-# Add the users onto that group
-# Schedule the crontab under the user to remove the access on expiry date and mail the status
+     - name: Check the given userid exists in AD / Local
+       getent:
+         database: passwd
+         key: "{{ userid }}"
+       register: id_out
+
+# Create the group - tempsudo
+     - name: Create the tempgroup - tempsudo
+       group:
+         name: tempsudo
+         gid: 5555
+         state: present
+
+       register: group_out
+       when: id_out.failed == false
+
+# Add the user onto tempsudo group
+     - name: Add users onto tempsudo group
+       user: 
+         name: "{{ userid }}"
+         groups: tempsudo
+         append: yes
+       
+       register: useradd_out
+       when: id_out.failed == false and group_out.failed == false
+
+# Create the temp sudo code file in the /etc/sudoers.d
+     - name: Create the temp sudo code file 
+       copy:
+         dest: /etc/sudoers.d/tempsudo
+         mode: 0440 
+         content: |
+                  %tempsudo ALL=(ALL) NOPASSWD: ALL 
+       
+       register: createtempfile_out
+       when: id_out.failed == false and group_out.failed == false and useradd_out.failed == false
 
  
+# Schedule the crontab under the user to remove the access on expiry date 
+     - name: Create the cron entry under root user for removing the user on the expiry date
+       cron:
+         name: Temproot access to be revoked - {{ edate }} for {{ userid }}
+         user: root
+         minute: "{{ cmin }}"
+         hour: "{{ chour }}"
+         weekday: "{{ cweekday }}"
+         month: "{{ cmon }}"
+         day: "{{ cday }}"
+         job: "/usr/bin/gpasswd -d {{ userid }} tempsudo"
+       
+       register: cron_out
+       when: id_out.failed == false and group_out.failed == false and useradd_out.failed == false and createtempfile_out.failed == false
+
 ...   
