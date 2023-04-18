@@ -1,8 +1,13 @@
 # AdminPlaybooks
 This is the place where I have created and Kept the Admin related playbooks
 
+<<<<<<< HEAD
 version - 0.0.2
 date - 17-APR-2023
+=======
+version - 0.0.1
+date - 16-APR-2023
+>>>>>>> 4823ba24949319a535e50453927aebd87729a7cf
 
 1) TempSudo Playbook - tempsudo.yaml 
    - A playbook for providing the temp sudo access for the given ID. Expiry date should be given so that the access will be revoked automatically on that date.
