@@ -1,0 +1,47 @@
+#Playbook for implementing rear backup for the linux servers
+#Lok
+
+---
+ - hosts: all
+   gather_facts: yes
+   become: yes
+#Define the backup URL where the iso file need to be placed. The mount can be NAS/NFS/local.
+#Below is the example for NFS mount. The NFS mount need not to be mounted inside the local server. 
+
+   vars:
+     backupurl: 'nfs://classroom.lab.example.com/rearbackups' 
+   
+   tasks:
+     - name: ReaR configuration
+       block:
+
+#Install the rear backup rpm
+
+         - name: Install the ReaR , nfs-utils rpm
+           yum:
+             name: "{{ item }}"
+             state: present
+           with_items:
+             - nfs-utils
+             - rear
+
+#Add the configuration through template
+         - name: Create the rear conf file template
+           template:
+             src: templates/rear-local.conf.j2
+             dest: /etc/rear/local.conf
+
+
+#Schedule the cron entry for taking the rear backup
+         - name: Schedule the cron entry for taking the ReaR backup
+           cron:
+             name: ReaR Backup Cron
+             user: root
+             minute: 0
+             hour: 2
+             job: "/usr/sbin/rear -d -v mkbackup"
+
+       rescue:
+         - debug:
+             msg: "ReaR configuration ERROR" 
+...

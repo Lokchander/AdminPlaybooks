@@ -1,0 +1,6 @@
+OUTPUT=ISO
+OUTPUT_URL="{{ backupurl }}"
+BACKUP=NETFS
+BACKUP_URL="{{ backupurl }}"
+BACKUP_PROG_EXCLUDE=("${BACKUP_PROG_EXCLUDE[@]}" '/media' '/var/tmp' '/var/crash')
+NETFS_KEEP_OLD_BACKUP_COPY=2
